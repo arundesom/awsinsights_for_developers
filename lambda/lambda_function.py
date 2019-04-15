@@ -24,9 +24,3 @@ def lambda_handler(event, context):
 		)
 		
         return response
-		#{'queryId':response['queryId']}
-    #{
-    #    'statusCode': 200,
-    #    'body': json.dumps('Hello from Lambda!')
-    #}
-#3b14dd58-ac96-4c4e-b13c-f1f0d989d3b0
