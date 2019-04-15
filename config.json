@@ -1,0 +1,48 @@
+{
+	"logs": {
+		"logs_collected": {
+			"files": {
+				"collect_list": [
+					{
+						"file_path": "C:\\API\\Logs\\ApiLog.log",
+						"log_group_name": "app_Log",
+						"log_stream_name": "API_{instance_id}"
+					},
+                                        {
+						"file_path": "C:\\service\\Logs\\Service.log",
+						"log_group_name": "app_Log",
+						"log_stream_name": "Service_{instance_id}"
+					}
+				]
+			}
+		}
+	},
+	"metrics": {
+		"metrics_collected": {
+			"LogicalDisk": {
+				"measurement": [
+					"% Free Space"
+				],
+				"metrics_collection_interval": 60,
+				"resources": [
+					"*"
+				]
+			},
+			"Memory": {
+				"measurement": [
+					"% Committed Bytes In Use"
+				],
+				"metrics_collection_interval": 60
+			},
+			"PhysicalDisk": {
+				"measurement": [
+					"% Disk Time"
+				],
+				"metrics_collection_interval": 60,
+				"resources": [
+					"*"
+				]
+			}
+		}
+	}
+}
