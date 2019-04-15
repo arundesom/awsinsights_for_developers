@@ -1,0 +1,236 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+table {
+	border-collapse: collapse;
+	width: 100%;
+	table-layout: fixed;
+}
+
+th, td {
+	text-align: left;
+	padding: 8px;
+	word-break: break-word;
+    font-family: monospace;
+}
+th:nth-child(1),
+th:nth-child(2) {
+	width: 10%;
+}
+
+tr:nth-child(even) {background-color: #f2f2f2;}
+
+</style>
+</head>
+<script src="https://code.angularjs.org/1.3.20/angular.min.js"></script>
+<body>
+    <div ng-app="app" ng-controller="HttpGetController as ctrl">
+			<table>
+			<tr><td>Environment &nbsp;&nbsp; 
+				<select ng-model="env">
+					<option value="app_QA_Log" ng-selected="true" >QA</option>
+					<option value="app_Regression_Log">Regression</option>
+					<option value="app_Preview_Log">Preview US</option>
+				</select>
+			</td>
+			<td>Time Period &nbsp;&nbsp; 
+				<select ng-model="time">
+					<option value="30" ng-selected="true" >30 minute</option>
+					<option value="60">1 hour</option>
+					<option value="120">2 hour</option>
+					<option value="180">3 hour</option>
+					<option value="360">6 hour</option>
+					<option value="480">8 hour</option>
+				</select>
+			</td>
+			<td><button ng-click="submitQuery()">Get Logs</button></td>
+			<td width="15%"><span style="color:green;">{{queryingstatus}}</span>
+			</td>
+			</tr>
+			</table>
+			<table>
+			<tr>
+			<td>
+				<input type="radio" ng-model="mode" value="query">
+				Query &nbsp;&nbsp;
+				<input type="radio" ng-model="mode" value="correlationId">
+				Correlation ID
+			</td>
+			<td width="55%" ng-show="mode=='query'">Query&nbsp;&nbsp;
+				<input type="text" name="userName" ng-model="query" required style="width:90%;">
+			</td>
+			<td width="55%"ng-show="mode=='correlationId'">Correlation Id&nbsp;&nbsp;
+				<input type="text" name="userName" ng-model="correlationId" required style="width:70%;">
+			</td>
+			
+			<td width="23%">
+				<div ng-show="mode=='query'">
+				Sample Queries &nbsp;&nbsp; 
+				<select ng-model="sample" ng-change="updatequery()">
+					<option value="--Select--" ng-selected="true" >--Select--</option>
+					<option ng-repeat="x in samplequeries" value="{{x.query}}">{{x.name}}</option>
+				</select>
+				</div>
+			</td>
+			
+			
+			</tr>
+			</table>
+			
+			<hr>
+            <table>
+                <thead>
+                    <th>Timestamp</th>
+                    <th>logStream</th>
+					<th>Message</th>
+					
+                </thead>
+                <tbody>
+					
+					<tr ng-repeat="log in ctrl.logList">
+						<td>{{log.timestamp}}</td>
+						<td>{{log.logStream}}</td>
+						<td>{{log.message}}</td>
+						
+					</tr>
+					
+                </tbody>
+            </table>
+       <div ng-show="logisempty">No logs available to display</div>
+    </div>
+</body>
+<script>
+	var app = angular.module("app", []);
+    app.controller("HttpGetController", function ($scope, $http) {
+    
+		$scope.samplequeries = [{"name":"Error Log Events","query":"fields @message,@timestamp,@logStream | filter @message like /Error/"},
+								{"name":"Latest 25 Events","query":"fields @timestamp, @message,@logStream | sort @timestamp desc | limit 25"}];
+        $scope.sample = "--Select--";
+		$scope.mode = "query";
+		$scope.logisempty = false;
+		var self = this;
+		$scope.queryingstatus = "";
+		$scope.env = "app_QA_Log";
+		$scope.time = "30";
+		$scope.query = "fields @message,@timestamp,@logStream | filter @message like /Error/";
+		$scope.api_url = "https://tydv5565g.execute-api.ap-south-1.amazonaws.com/prod";
+		$scope.submitQuery = function() {
+			
+			self.logList = [];
+			$scope.queryingstatus = "Log request Starting";
+			$scope.logisempty = false;
+			var d = new Date();
+			$scope.utc = d.toUTCString();
+			$scope.date = new Date($scope.utc);
+			//d.toUTCString();
+			$scope.now = Math.floor($scope.date.getTime()/1000.0);
+			$scope.hourbefore = $scope.now - ($scope.time * 60);
+			
+			var queryString = "";
+			if($scope.mode == "query")
+				queryString =  $scope.query;
+			else
+				queryString = "fields @message,@timestamp,@logStream | filter @message like /"+$scope.correlationId+"/";
+			
+			$scope.region = "ap-south-1";
+			if($scope.env == "app_Preview_Log")
+				$scope.region = "us-west-2";
+
+			var data = {
+                startTime: $scope.hourbefore,
+                endTime: $scope.now,
+				logGroupName: $scope.env,
+				queryString: queryString,
+				region: $scope.region
+            }
+			$scope.queryId = data;
+			var config = {
+                headers : {
+                    'Content-Type': 'application/json'
+                }
+            }
+			var url = $scope.api_url+"/getlogs";
+			$http.post(url, data, config)
+			    .success(function (data, status, headers, config) {
+					$scope.queryId = data.queryId;
+					$scope.queryingstatus = "Log request Submitted";
+					//console.log(data.queryId);
+					$scope.sleepme(10);
+					$scope.getLogs(10);
+				})
+				.error(function (data, status, header, config) {
+					$scope.ResponseDetails = "Data: " + data +
+						"<hr />status: " + status +
+						"<hr />headers: " + header +
+						"<hr />config: " + config;
+					$scope.queryingstatus = "Log querying failed";
+				});
+			
+			//$scope.queryId = "92ee69d5-f507-4952-8ee1-78cb5ecdc033";
+			//$scope.getLogs(5);
+		//$scope.date = $filter('date')($scope.date, "dd/MM/yyyy", "UTC");
+       
+		}
+		
+		$scope.getLogs = function(repeatCount) {
+			if(repeatCount == 0)
+				return;
+			$http.get($scope.api_url+"/getlogs?queryid="+$scope.queryId+"&region="+$scope.region)
+			.then(function(response) {
+				//self.logList = response.data.results;
+				$scope.convertOutput(response.data.results);
+				if(response.data.status == "Running" || response.data.status == "Scheduled" )
+				{
+					$scope.sleepme(10);
+					$scope.queryingstatus = "Log querying " + response.data.status;
+					$scope.getLogs(repeatCount--);
+				}
+				else if(response.data.status == "Complete")
+				{
+					$scope.queryingstatus = "Log querying " + response.data.status;
+					if(self.logList.length == 0)
+						$scope.logisempty = true;
+				}
+			});
+		}
+		
+		$scope.sleepme = function(seconds) {
+			var milliseconds = seconds * 1000;
+			var start = new Date().getTime();
+			for (var i = 0; i < 1e7; i++) {
+				if ((new Date().getTime() - start) > milliseconds){
+				  break;
+				}
+			}
+		}
+		
+		$scope.convertOutput = function(results) {
+			var log = [];
+			angular.forEach(results, function(items) {
+				//var values = value;
+				var logItem = {};
+				angular.forEach(items, function(value, key) {
+					if(value.field == '@timestamp')
+						logItem["timestamp"] = value.value
+					else if(value.field == '@logStream')
+						logItem["logStream"] = value.value
+					else if(value.field == '@message')
+						logItem["message"] = value.value
+				  
+				});
+				log.push(logItem);
+			},log);
+			self.logList =  log;
+			
+		}
+		
+		$scope.updatequery = function() {
+			if($scope.sample != '--Select--')
+				$scope.query = $scope.sample
+		}
+    });
+
+</script>
+</html>
