@@ -8,7 +8,7 @@ Why?
 Application logs to AWS cloudwatch
 
 Reference AWS Documentation   
-
+ 
 Step 1: Create an IAM Role and attach it to the EC2 instances
              To create IAM Role, Navigate to IAM -> Roles -> Create Role -> Select AWS Service and EC2 -> Next Permissions -> Create Policy-> JSON -> provide the below json -> Review Policy -> Provide name, description -> Create Policy -> Refresh policy list to get newly create policy in role creation page -> search the policy with name and select it -> Next: Tags ->Next: Review -> Provide name and description -> Create Role
             Get the IAM policy script in this link: iampolicyscript_runcommand.json
